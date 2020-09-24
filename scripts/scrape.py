@@ -49,28 +49,50 @@ def extract_from_html_book_page():
     data_path = str(Path(os.getcwd()).parents[0])+'/data/html_files/'
     
     html_book_data = []
-    for i in range(0,400):
-        soup = bs(open(data_path+"book_"+str(i+1)+'.html',encoding="utf-8"),'html.parser')
+    for i in range(0,1249):
+        soup = bs(open(data_path+"/books_2020_09_23_no_login/book_"+str(i+1)+'.html',encoding="utf-8"),'html.parser')
         
         td = {}
-        # publisher, kindle price, number of reviews, isbn
         
         print(i)
-        td['title']=soup.select_one("meta[property='og:title']")['content']
-        td['isbn']=soup.select_one("meta[property='books:isbn']")['content']
-        td['reviewCount'] = soup.find_all(itemprop="reviewCount")[0].text.split()[0].replace(",","")        
-        td['genres'] = soup.find_all(class_='actionLinkLite greyText bookPageGenreLink')
+        
+        try:
+            td['title']=soup.select_one("meta[property='og:title']")['content']
+        except:
+            td['title'] = ""
+            print('title issue')
+        try:
+            td['isbn']=soup.select_one("meta[property='books:isbn']")['content']
+        except:
+            td['isbn'] = ""
+            print('isbn issue')
+        try:
+            td['reviewCount'] = soup.find_all(itemprop="reviewCount")[0].text.split()[0].replace(",","")  
+        except:
+            td['reviewCount'] = ""
+            print('reviewCount issue')
+        try:
+            td['genres'] = soup.find_all(class_='actionLinkLite greyText bookPageGenreLink')
+        except:
+            td['genres'] = ""
+            print('genres issue')
+        try:
+            td['kindle_price'] = soup.find_all(href="javascript:void(0)")[0].text.split()[-1].replace("$","")
+        except:
+            td['kindle_price'] = ""
+            print('kindle_price issue')
+            
         genre_dicti = {}
         for tagi in td['genres']:
             tagi = tagi['title'].split()
             genre_dicti['genre_'+tagi[6][1:-1]] = tagi[0]
         
-        html_book_data.append([td['title'],td['isbn'],td['reviewCount'],genre_dicti])
-    
+        html_book_data.append([td['title'],td['isbn'],td['reviewCount'],td['kindle_price'],genre_dicti])
+
     ### process genres 
     all_genres = set()
     for booki in html_book_data:
-        all_genres = all_genres.union(set(booki[3].keys()))
+        all_genres = all_genres.union(set(booki[4].keys()))
     all_genres = list(all_genres)
     all_genres.sort()
 
@@ -79,14 +101,14 @@ def extract_from_html_book_page():
     for rowi in html_book_data:
         genres_counti = []
         for keyi in all_genres:
-            genres_counti.append(rowi[3].get(keyi,'0'))
-        temp_rowi = rowi[0:3]
+            genres_counti.append(rowi[4].get(keyi,'0'))
+        temp_rowi = rowi[0:4]
         temp_rowi.extend(genres_counti)
 
         out_data.append(temp_rowi)
     
     # create output columns
-    columns_out = ['book_title', 'book_isbn', 'book_review_count']
+    columns_out = ['book_title', 'book_isbn', 'book_review_count','kindle_price']
     columns_out.extend(all_genres)
     
     df1 = pd.DataFrame(out_data, columns=columns_out)
@@ -132,6 +154,7 @@ def write_html_books():
         i += 1
         
 def main():
+    # TODO: add more features like distribution of ratings, number of books published by author, publisher, date of first review
     extract_from_html_book_page()
 
 if __name__ == "__main__":
