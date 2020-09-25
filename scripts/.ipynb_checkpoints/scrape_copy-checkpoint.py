@@ -5,10 +5,6 @@ from pathlib import Path
 import os 
 import pandas as pd
 import numpy as np
-import re
-import random
-random.seed(123)
-np.random.seed(123)
 
     #from selenium import webdriver
     #from idlelib.iomenu import encoding
@@ -56,71 +52,18 @@ def extract_from_html_author_page():
     
     authors_set = set(df1['author_link'].values)
     
-    html_author_data = {}
-
-    for author_link_i in authors_set:
-        if str(author_link_i) == 'nan': continue
-        
-        author_i = author_link_i.split('.')[-1]
+    html_author_data = []
+    for author_i in authors_set:
+        author_i = author_i.split('.')[-1]
         print(author_i)
-        file_path_i = data_path+"/html_files/authors_2020_09_24_no_login/author_"+author_i+'.html'
-        
-        if not Path(file_path_i).exists():
-            print(file_path_i,"does not exist!")
-            continue 
-        
-        soup = bs(open(file_path_i,encoding="utf-8"),'html.parser')
-        dict1 = {}        
-        try:
-            dict1['author_link']=soup.select_one("meta[property='og:url']")['content'].strip()
-        except:
-            dict1['author_link'] = ""
-            print('author_link issue')
-        try:
-            dict1['author_unique_works'] = get_num_distinct_works(file_path_i)
-        except:
-            dict1['author_unique_works'] = ""
-            print('author_unique_works issue')
+#         soup = bs(open(data_path+"/authors_2020_09_24_no_login/author_"+author_i+'.html',encoding="utf-8"),'html.parser')
+#         dict1 = {}        
 #         try:
-#             dict1['author_num_posts'] = soup.select_all()
+#             dict1['title']=soup.select_one("meta[property='og:title']")['content']
 #         except:
-#             dict1['author_num_posts'] = ""
-#             print('author_num_posts issue')
-#         try:
-#             dict1['author_num_ratings'] = soup.select_all()
-#         except:
-#             dict1['author_num_ratings'] = ""
-#             print('author_num_ratings issue')
-#         try:
-#             dict1['author_num_reviews'] = soup.select_all()
-#         except:
-#             dict1['author_num_reviews'] = ""
-#             print('author_num_reviews issue')
-#         try:
-#             dict1['author_num_books_in_bookshelves'] = soup.select_all()
-#         except:
-#             dict1['author_num_books_in_bookshelves'] = ""
-#             print('author_num_books_in_bookshelves issue')
+#             dict1['title'] = ""
+#             print('title issue')
             
-        html_author_data[dict1['author_link']]= dict1['author_unique_works']
-    
-        
-    columns_out = ['author_link', 'author_unique_works']
-    
-    df1 = pd.read_csv(str(Path(os.getcwd()).parents[0])+'/data/books_25_pages.csv',skipinitialspace=True)
-    
-    df1['author_num_unique_books'] = df1.apply(lambda row: html_author_data.get(row['author_link'],""),axis=1)
-
-    df1.to_csv(str(Path(os.getcwd()).parents[0])+'/data/books_25_pages_author_info.csv',index=False)
-    
-
-def get_num_distinct_works(author_file_path):
-    pattern = re.compile("distinct works")
-    for i, line in enumerate(open(author_file_path,encoding='utf-8')):
-        for match in re.finditer(pattern, line):
-            print(line)
-            return(line.split('>')[1].split()[0].replace(",",""))
-
 def extract_from_html_book_page():
     data_path = str(Path(os.getcwd()).parents[0])+'/data/html_files/'
     
@@ -241,33 +184,26 @@ def write_html_authors():
     
     authors_set = set(df1['author_link'].values)
     
-    i = 0
     for refi in authors_set:
-        if str(refi) == 'nan': 
-            print(i,refi)
-            i += 1
-            continue
+        if str(refi) == 'nan': continue
+        print(refi)
         refi = refi.strip()
         author_name_i = refi.split(".")[-1]
         pagei = requests.get(refi)
         time.sleep(5)
         if pagei.status_code != 200:
-            print("problem!"+str(i,refi))
-            i += 1
-            continue
+            print("problem!"+str(author_name_i))
+            quit()
+          
         with open(out_path+'/author_'+author_name_i+'.html','w',encoding='utf-8') as file:
             file.write(pagei.text)
-            
-        print(i,refi)
-
-        i += 1
         
 def main():
     # TODO: 
         # use data from various sources
-        # add more features like distribution of book ratings, number of books published by author, publisher, date of first review
+        # add more features like distribution of ratings, number of books published by author, publisher, date of first review
         # create new features with PCA, t-SNE, k-means...
-    extract_from_html_author_page()
+    write_html_authors()
 
 if __name__ == "__main__":
     main()
