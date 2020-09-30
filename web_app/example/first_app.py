@@ -10,7 +10,7 @@ import time
 random.seed(123)
 np.random.seed(123)
 
-st.title('More reviews for your book')
+st.title('Select the labels for your book')
 
 
 df1 = pd.read_csv('../../data/books_25_pages_clean0.csv',skipinitialspace=True)
@@ -21,7 +21,7 @@ X_train = df_train[features]
 y_train = df_train['reviews_per_month_since_published']
 ols = sm.OLS(y_train,X_train)
 ols_result = ols.fit()
-#
+
 df_coeff = pd.DataFrame(ols_result.params).reset_index()
 df_coeff = df_coeff.rename(columns={0:'importance','index':'label'})
  
@@ -34,42 +34,56 @@ for vali in df_coeff['label'].values:
     
 df_coeff['label'] = new_values
 
-#st.dataframe(df_coeff.head(n=5))
+# st.dataframe(df_coeff)
 
-scale_bar = 10.0
-# Add a slider to the sidebar:
-side_bars = []
-side_bars.append(st.sidebar.slider(
-    'Importance of tag: science',
-    0.0, scale_bar
-))
-side_bars.append(st.sidebar.slider(
-    'Importance of tag: audiobook',
-    0.0, scale_bar
-))
-side_bars.append(st.sidebar.slider(
-    'Importance of tag: philosophy',
-    0.0, scale_bar
-))
-side_bars.append(st.sidebar.slider(
-    'Importance of tag: mental-health',
-    0.0, scale_bar
-))
-side_bars.append(st.sidebar.slider(
-    'Importance of tag: personal-development',
-    0.0, scale_bar
-))
+# scale_bar = 10.0
+# # Add a slider to the sidebar:
+# side_bars = []
+# side_bars.append(st.sidebar.slider(
+#     'Importance of tag: science',
+#     0.0, scale_bar
+# ))
+# side_bars.append(st.sidebar.slider(
+#     'Importance of tag: audiobook',
+#     0.0, scale_bar
+# ))
+# side_bars.append(st.sidebar.slider(
+#     'Importance of tag: philosophy',
+#     0.0, scale_bar
+# ))
+# side_bars.append(st.sidebar.slider(
+#     'Importance of tag: mental-health',
+#     0.0, scale_bar
+# ))
+# side_bars.append(st.sidebar.slider(
+#     'Importance of tag: personal-development',
+#     0.0, scale_bar
+# ))
 
-sum_s = np.sum(side_bars)
-target_importance = []
-importance_values = df_coeff['importance'].values[0:5]
-for valuei in importance_values:
-    target_importance.append(scale_bar*valuei/np.sum(importance_values))
+# sum_s = np.sum(side_bars)
+# target_importance = []
+# importance_values = df_coeff['importance'].values[0:5]
+# for valuei in importance_values:
+#     target_importance.append(scale_bar*valuei/np.sum(importance_values))
+# 
+# labels_df = df_coeff['label'].values[0:5]
+# for indexi in range(0,5):
+#     change = 'increase' if target_importance[indexi]-side_bars[indexi] < 0 else 'decrease'
+#     'If you '+change+' the importance of the label "'+labels_df[indexi]+'" by ' +str(abs(round(target_importance[indexi]-side_bars[indexi],1))) + ' you can get ' + str(round(importance_values[indexi],1)) + ' more reviews per month'
 
-labels_df = df_coeff['label'].values[0:5]
-for indexi in range(0,5):
-    change = 'increase' if target_importance[indexi]-side_bars[indexi] < 0 else 'decrease'
-    'If you '+change+' the importance of the label "'+labels_df[indexi]+'" by ' +str(abs(round(target_importance[indexi]-side_bars[indexi],1))) + ' you can get ' + str(round(importance_values[indexi],1)) + ' more reviews per month'
+
+main_category = st.selectbox("Main category: ", ['self-help','science-fiction'])
+
+dict_include = {
+    'self-help':["science","philosophy","mental-health","personal-development"],
+    'science-fiction':['a','b']
+    }
+dict_exclude = {
+    'self-help':["business","psychology"],
+    'science-fiction':['c','d']
+    }
+include_words = st.multiselect("Include:", dict_include[main_category])
+exclude_words = st.multiselect("Exclude:", dict_exclude[main_category])
 
 
 

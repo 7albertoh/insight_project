@@ -107,11 +107,11 @@ def extract_from_html_author_page():
         
     columns_out = ['author_link', 'author_unique_works']
     
-    df1 = pd.read_csv(str(Path(os.getcwd()).parents[0])+'/data/books_25_pages.csv',skipinitialspace=True)
+    df1 = pd.read_csv(str(Path(os.getcwd()).parents[0])+'/data/books_25_pages_description.csv',skipinitialspace=True)
     
     df1['author_num_unique_books'] = df1.apply(lambda row: html_author_data.get(row['author_link'],""),axis=1)
 
-    df1.to_csv(str(Path(os.getcwd()).parents[0])+'/data/books_25_pages_author_info.csv',index=False)
+    df1.to_csv(str(Path(os.getcwd()).parents[0])+'/data/books_25_pages_author_info_description.csv',index=False)
     
 
 def get_num_distinct_works(author_file_path):
@@ -125,7 +125,7 @@ def extract_from_html_book_page():
     data_path = str(Path(os.getcwd()).parents[0])+'/data/html_files/'
     
     html_book_data = []
-    for i in range(0,1249): #,1249):
+    for i in range(0,1249): #1249): #,1249):
         soup = bs(open(data_path+"/books_2020_09_23_no_login/book_"+str(i+1)+'.html',encoding="utf-8"),'html.parser')
         
         td = {}
@@ -162,34 +162,47 @@ def extract_from_html_book_page():
         except:
             td['kindle_price'] = ""
             print('kindle_price issue')
-        
+        try:             
+            for texti in str(soup.find_all(id="descriptionContainer")[0]).splitlines():
+                if "freeText" in texti:
+                    td['book_description'] = cleanhtml(texti)
+                    if "display:none" in texti:
+    #                     td['book_description'] = texti.split("display:none")[1].split("</span>")[0][2::]
+                        td['book_description'] = cleanhtml(texti)
+            if not td['book_description']:
+                td['book_description'] = ""
+        except:
+            td['book_description'] = ""
+            print('description issue')       
+
         genre_dicti = {}
         for tagi in td['genres']:
             tagi = tagi['title'].split()
             genre_dicti['genre_'+tagi[6][1:-1]] = tagi[0]
-        
-        html_book_data.append([td['title'],td['isbn'],td['reviewCount'],td['kindle_price'],td['author'],genre_dicti])
+        html_book_data.append([td['title'],td['isbn'],td['reviewCount'],td['kindle_price'],td['author'],td['book_description'],genre_dicti])
+
+    indexlast = 6
 
     ### process genres 
     all_genres = set()
     for booki in html_book_data:
-        all_genres = all_genres.union(set(booki[5].keys()))
+        all_genres = all_genres.union(set(booki[indexlast].keys()))
     all_genres = list(all_genres)
     all_genres.sort()
-
+    
     # process output data to include genres
     out_data = []
     for rowi in html_book_data:
         genres_counti = []
         for keyi in all_genres:
-            genres_counti.append(rowi[5].get(keyi,'0'))
-        temp_rowi = rowi[0:5]
+            genres_counti.append(rowi[indexlast].get(keyi,'0'))
+        temp_rowi = rowi[0:indexlast]
         temp_rowi.extend(genres_counti)
 
         out_data.append(temp_rowi)
     
     # create output columns
-    columns_out = ['book_title', 'book_isbn', 'book_review_count','kindle_price','author_link']
+    columns_out = ['book_title', 'book_isbn', 'book_review_count','kindle_price','author_link','book_description']
     columns_out.extend(all_genres)
     
     df1 = pd.DataFrame(out_data, columns=columns_out)
@@ -197,7 +210,7 @@ def extract_from_html_book_page():
     df2 = df2.drop(columns=['book_title'])
 
     df1 = df2.head(n=len(df1.index)).join(df1)
-    df1.to_csv(str(Path(os.getcwd()).parents[0])+'/data/books_25_pages.csv',index=False)
+    df1.to_csv(str(Path(os.getcwd()).parents[0])+'/data/books_25_pages_description.csv',index=False)
     
 def write_html_genre(genre):
     out_path = str(Path(os.getcwd()).parents[0])+'/data/html_files/'
@@ -212,6 +225,11 @@ def write_html_genre(genre):
         
         with open(out_path+'/'+str(i+1)+'.html','w',encoding='utf-8') as file:
             file.write(pagei.text)
+
+def cleanhtml(raw_html):
+  cleanr = re.compile('<.*?>')
+  cleantext = re.sub(cleanr, '', raw_html)
+  return cleantext
             
 def write_html_books():
     out_path = str(Path(os.getcwd()).parents[0])+'/data/html_files/'
@@ -267,8 +285,8 @@ def main():
         # use data from various sources
         # add more features like distribution of book ratings, number of books published by author, publisher, date of first review
         # create new features with PCA, t-SNE, k-means...
-    extract_from_html_author_page()
-
+        extract_from_html_author_page()
+    
 if __name__ == "__main__":
     main()
 
