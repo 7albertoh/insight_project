@@ -83,7 +83,7 @@ ols_results = sm.load('../../data/ols.pickle')
 
 st.title('Publish or perish: data-driven choice of book keywords for publishing on Amazon')
 
-main_category = st.selectbox("Main category of the book: ", ["",'self-help','science-fiction'])
+main_category = st.selectbox("Main category of the book: ", ["",'self-help'])
 book_title = st.text_input('Enter the title of the book:')
 book_description = st.text_input('Enter the description of the book:')
 # book_labels = st.text_input('Enter the labels of the book:')
@@ -102,7 +102,7 @@ filename_model = '../../data/topic_model_tfidf.pickle'
 tfidf_model = pickle.load(open(filename_model, 'rb'))
 
 # transform text to features for linear regression
-num_topics = 15
+num_topics = 10
 X_tfidf = tfidf_model.transform([processed_input_text])
 X_nmf = nmf_model.transform(X_tfidf)
 df_x_nmf = pd.DataFrame(X_nmf,columns = ['topic_'+str(i) for i in range(0,num_topics)]) 
@@ -111,17 +111,19 @@ df_x_nmf_tp = df_x_nmf.transpose().reset_index()
 df_x_nmf_tp = df_x_nmf_tp.rename(columns={'index':'topic',0:'probability'})
 df_x_nmf_tp['topic'] = list(range(0,len(df_x_nmf_tp['topic'].values)))
 
+# df_x_nmf_tp
 # probability cutoff for topic model
-cutoff_prob = 0.15
+cutoff_prob = 0.1
 topics_list = df_x_nmf_tp[df_x_nmf_tp['probability'] > cutoff_prob]['topic'].values
 #words of topics that have probability > cutoff_prob
 df_topics_high_prob = df_coeff_topics[df_coeff_topics['topic'].isin(topics_list)]
 # output top words
 # df_topics_high_prob
 
-conf_low = df_topics_high_prob[df_topics_high_prob['p-val']<0.05]['conf_int_low'].values
-conf_high = df_topics_high_prob[df_topics_high_prob['p-val']<0.05]['conf_int_high'].values
-words_top = df_topics_high_prob[df_topics_high_prob['p-val']<0.05]['top_words'].values
+conf_level = 0.05
+conf_low = df_topics_high_prob[df_topics_high_prob['p-val']<conf_level]['conf_int_low'].values
+conf_high = df_topics_high_prob[df_topics_high_prob['p-val']<conf_level]['conf_int_high'].values
+words_top = df_topics_high_prob[df_topics_high_prob['p-val']<conf_level]['top_words'].values
 
 for i in range(0,len(words_top)):
     'Including the words ('+', '.join(words_top[i].split())+ ') is associated with having between '+str(int(round(conf_low[i],0)))+' and '+str(int(round(conf_high[i],0)))+' more reviews per month.'
