@@ -83,7 +83,7 @@ ols_results = sm.load('../../data/ols.pickle')
 
 st.title('Publish or perish: data-driven choice of book keywords for publishing on Amazon')
 
-main_category = st.selectbox("Main category of the book: ", ["",'self-help'])
+main_category = st.selectbox("Select the main category of the book: ", ["",'self-help'])
 book_title = st.text_input('Enter the title of the book:')
 book_description = st.text_input('Enter the description of the book:')
 # book_labels = st.text_input('Enter the labels of the book:')
