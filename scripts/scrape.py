@@ -7,6 +7,7 @@ import pandas as pd
 import numpy as np
 import re
 import random
+
 random.seed(123)
 np.random.seed(123)
 
@@ -127,7 +128,7 @@ def extract_from_html_book_page():
     html_book_data = []
     for i in range(0,1249): #1249): #,1249):
         soup = bs(open(data_path+"/books_2020_09_23_no_login/book_"+str(i+1)+'.html',encoding="utf-8"),'html.parser')
-        
+
         td = {}
         
         print(i)
@@ -173,15 +174,47 @@ def extract_from_html_book_page():
                 td['book_description'] = ""
         except:
             td['book_description'] = ""
-            print('description issue')       
-
+            print('description issue')    
+               
+        try:            
+            review_tags = soup.find_all(itemprop="reviews")
+            reviews_string = ''
+            for tag_i in review_tags:
+    #             author_tags = tag_i.find_all(itemprop="author")            
+    #             for tag_ij in out0:
+    #                 print(tag_ij.encode("utf-8")) 
+                ratings_tags = tag_i.find_all(class_="staticStars notranslate")
+    #             for tag_ij in out2:
+    #                 print(tag_ij.encode("utf-8"))
+                review_text_tags = tag_i.find_all(style="display:none")
+    #             for tag_ij in out3:
+    #                 print(tag_ij.encode("utf-8")) 
+    #                 break
+                if not (ratings_tags and review_text_tags):
+                    continue
+                dict_1 = {'did not like it':1, 'it was ok':2,'liked it':3,'really liked it':4,'it was amazing':5}
+                rating_stars = dict_1[ratings_tags[0].text.strip()]
+                if rating_stars < 3: 
+                    continue
+#                 reviews_string += ' '+review_text_tags[0].text
+                try:
+#                     print(review_text_tags[0].text)
+                    reviews_string += ' '+str(review_text_tags[0].text).replace(','," ").replace('\n', ' ').replace('\r', '').replace('"',"").replace("'","")
+                except:
+#                     print(str(review_text_tags[0].text.encode('utf-8'))[2:-1])
+                    reviews_string += ' ' +str(review_text_tags[0].text.encode('utf-8'))[2:-1].replace(','," ").replace('\n', ' ').replace('\r', '').replace('"',"").replace("'","")
+            td['book_reviews'] = reviews_string
+        except:
+            td['book_reviews'] = ""
+#             print('book_reviews issue')   
+               
         genre_dicti = {}
         for tagi in td['genres']:
             tagi = tagi['title'].split()
             genre_dicti['genre_'+tagi[6][1:-1]] = tagi[0]
-        html_book_data.append([td['title'],td['isbn'],td['reviewCount'],td['kindle_price'],td['author'],td['book_description'],genre_dicti])
+        html_book_data.append([td['title'],td['isbn'],td['reviewCount'],td['kindle_price'],td['author'],td['book_description'],td['book_reviews'],genre_dicti])
 
-    indexlast = 6
+    indexlast = 7
 
     ### process genres 
     all_genres = set()
@@ -202,11 +235,12 @@ def extract_from_html_book_page():
         out_data.append(temp_rowi)
     
     # create output columns
-    columns_out = ['book_title', 'book_isbn', 'book_review_count','kindle_price','author_link','book_description']
+    columns_out = ['book_title', 'book_isbn', 'book_review_count','kindle_price','author_link','book_description','book_reviews']
     columns_out.extend(all_genres)
     
     df1 = pd.DataFrame(out_data, columns=columns_out)
     df2 = pd.read_csv(str(Path(os.getcwd()).parents[0])+'/data/genre_25_pages.csv',skipinitialspace=True)
+    df2 = df2.rename(columns = lambda x: x.strip())
     df2 = df2.drop(columns=['book_title'])
 
     df1 = df2.head(n=len(df1.index)).join(df1)
@@ -236,6 +270,7 @@ def write_html_books():
     data_path = str(Path(os.getcwd()).parents[0])+'/data/genre_25_pages.csv'
     url_base = "https://www.goodreads.com"
     df1 = pd.read_csv(data_path,skipinitialspace=True)
+    df1 = df1.rename(columns = lambda x: x.strip())
     
     i = 0
     for refi in df1['book_reference'].values:
@@ -285,7 +320,7 @@ def main():
         # use data from various sources
         # add more features like distribution of book ratings, number of books published by author, publisher, date of first review
         # create new features with PCA, t-SNE, k-means...
-        extract_from_html_author_page()
+    extract_from_html_book_page()
     
 if __name__ == "__main__":
     main()
