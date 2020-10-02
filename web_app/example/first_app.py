@@ -15,6 +15,7 @@ random.seed(123)
 np.random.seed(123)
 
 nltk.download('punkt')
+nltk.download('stopwords')
 
 def convert_lower_case(data):
     return np.char.lower(data)
