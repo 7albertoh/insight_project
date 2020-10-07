@@ -153,11 +153,13 @@ if main_category == 'self-help':
         keywords_mapped_present[-1] = 'and '+keywords_mapped_present[-1]
         keywords_missing = ", ".join(keywords_mapped_missing)
         keywords_present = ", ".join(keywords_mapped_present)
-        'Good news! You already have ' +str(len(set_out)-len(words_top_missing))+' important keywords in your book title and description: '+ keywords_present+'. You have '+str(len(keywords_mapped_missing))+' to go! Add: '+ keywords_missing
+        '* Good news! You already have ' +str(len(set_out)-len(words_top_missing))+' important keywords in your book title and description: '+ keywords_present+'.'
+        '* Add the words  **'+keywords_missing+'** to the section "keywords", "title", or "description" on Kindle Direct Publishing.'
+
         for i in range(0,len(words_top)):
             words_list_i = words_top[i].split()
             words_list_i[-1] = 'and '+ words_list_i[-1]
-            'Including the words '+', '.join(words_list_i)+ ' is associated with having between '+str(int(round(math.exp(conf_low[i]),0)))+' and '+str(int(round(math.exp(conf_high[i]),0)))+' more reviews per month.'
+            '* The words '+', '.join(words_list_i)+ ' are associated with having ** between '+str(int(round(math.exp(conf_low[i]),0)))+'** and **'+str(int(round(math.exp(conf_high[i]),0)))+' more reviews per month**.'
     
     
     
