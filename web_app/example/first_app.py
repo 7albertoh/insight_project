@@ -10,6 +10,7 @@ from nltk.stem import PorterStemmer
 from num2words import num2words
 import nltk
 import pickle
+import math
 
 random.seed(123)
 np.random.seed(123)
@@ -84,8 +85,8 @@ ols_results = sm.load('../../data/ols.pickle')
 st.title('Publish or perish: data-driven choice of book keywords for publishing on Amazon')
 
 main_category = st.selectbox("Select the main category of the book: ", ["",'self-help'])
-book_title = st.text_input('Enter the title of the book:')
-book_description = st.text_input('Enter the description of the book:')
+book_title = st.text_area('Enter the title of the book:')
+book_description = st.text_area('Enter the description of the book:')
 # book_labels = st.text_input('Enter the labels of the book:')
 input_text = book_title +' '+book_description
 
@@ -128,22 +129,32 @@ words_top = df_topics_high_prob[df_topics_high_prob['p-val']<conf_level]['top_wo
 
 set_out = set(preprocess(" ".join(words_top)).split())
 set_in  = set(processed_input_text.split())
-set_missing = set_out.difference(set_in)
+words_top_missing = set_out.difference(set_in)
+words_top_present = set_out.intersection(set_in)
 
-for i in range(0,len(words_top)):
-    'Including the words ('+', '.join(words_top[i].split())+ ') is associated with having between '+str(int(round(conf_low[i],0)))+' and '+str(int(round(conf_high[i],0)))+' more reviews per month.'
+# for i in range(0,len(words_top)):
+#     'Including the words ('+', '.join(words_top[i].split())+ ') is associated with having between '+str(int(round(conf_low[i],0)))+' and '+str(int(round(conf_high[i],0)))+' more reviews per month.'
 
 
 
-if set_missing:
+if words_top_missing:
     ### map stems back
     map_stems = {'studi': 'study', 'stori':'story','inspir':'inspire','happi':'happy','posit':'positive','creat':'create','busi':'business','emot':'emotion','advic':'advice','medit':'meditate','famili':'family'}
-    keywords_mapped = []
-    for stri in set_missing:
-        keywords_mapped.append(map_stems.get(stri,stri))
-    keywords_missing = ", ".join(keywords_mapped)
-    
-    'Good news! You already have ' +str(len(set_out)-len(set_missing))+' of these keywords in your book title and description. You have '+str(len(set_missing))+' to go! Add: '+ keywords_missing
+    keywords_mapped_missing = []
+    for stri in words_top_missing:
+        keywords_mapped_missing.append(map_stems.get(stri,stri))
+    keywords_mapped_present = []
+    for stri in words_top_present:
+        keywords_mapped_present.append(map_stems.get(stri,stri))
+    keywords_mapped_missing[-1] = 'and '+keywords_mapped_missing[-1]
+    keywords_mapped_present[-1] = 'and '+keywords_mapped_present[-1]
+    keywords_missing = ", ".join(keywords_mapped_missing)
+    keywords_present = ", ".join(keywords_mapped_present)
+    'Good news! You already have ' +str(len(set_out)-len(words_top_missing))+' important keywords in your book title and description: '+ keywords_present+'. You have '+str(len(keywords_mapped_missing))+' to go! Add: '+ keywords_missing
+    for i in range(0,len(words_top)):
+        words_list_i = words_top[i].split()
+        words_list_i[-1] = 'and '+ words_list_i[-1]
+        'Including the words '+', '.join(words_list_i)+ ' is associated with having between '+str(int(round(math.exp(conf_low[i]),0)))+' and '+str(int(round(math.exp(conf_high[i]),0)))+' more reviews per month.'
 
 # df1 = pd.read_csv('../../data/books_25_pages_clean0.csv',skipinitialspace=True)
 # num_half = int(len(df1.index)/2)
