@@ -76,85 +76,100 @@ def preprocess(data):
     return data
 
 
-filename_model = '../../data/topic_model_tfidf_nmf.pickle'
-nmf_model = pickle.load(open(filename_model, 'rb'))
-filename_model = '../../data/topic_model_tfidf.pickle'
-tfidf_model = pickle.load(open(filename_model, 'rb'))
-ols_results = sm.load('../../data/ols.pickle')
 
 st.title('Publish or perish: data-driven choice of book keywords for publishing on Amazon')
 
 main_category = st.selectbox("Select the main category of the book: ", ["",'self-help'])
-book_title = st.text_area('Enter the title of the book:')
-book_description = st.text_area('Enter the description of the book:')
-# book_labels = st.text_input('Enter the labels of the book:')
-input_text = book_title +' '+book_description
 
-processed_input_text = preprocess(input_text)
+if main_category == 'self-help':
+    filename_model = '../../data/topic_model_tfidf_nmf.pickle'
+    nmf_model = pickle.load(open(filename_model, 'rb'))
+    filename_model = '../../data/topic_model_tfidf.pickle'
+    tfidf_model = pickle.load(open(filename_model, 'rb'))
+    ols_results = sm.load('../../data/ols.pickle')
+
+    book_title = st.text_area('Enter the title of the book:')
+    book_description = st.text_area('Enter the description of the book:')
+    # book_labels = st.text_input('Enter the labels of the book:')
+    input_text = book_title +' '+book_description
+    
+    processed_input_text = preprocess(input_text)
+    
+    
+    df_coeff_topics = pd.read_csv('../../data/books_25_pages_author_info_description_genres_topics_top_words_ols_coeff.csv')
+    df_coeff_topics = df_coeff_topics.rename(columns = lambda x: x.strip())
+    
+    #import models
+    filename_model = '../../data/topic_model_tfidf_nmf.pickle'
+    nmf_model = pickle.load(open(filename_model, 'rb'))
+    filename_model = '../../data/topic_model_tfidf.pickle'
+    tfidf_model = pickle.load(open(filename_model, 'rb'))
+    
+    # transform text to features for linear regression
+    num_topics = 10
+    X_tfidf = tfidf_model.transform([processed_input_text])
+    X_nmf = nmf_model.transform(X_tfidf)
+    df_x_nmf = pd.DataFrame(X_nmf,columns = ['topic_'+str(i) for i in range(0,num_topics)]) 
+    # convert into useful dataframe
+    df_x_nmf_tp = df_x_nmf.transpose().reset_index()
+    df_x_nmf_tp = df_x_nmf_tp.rename(columns={'index':'topic',0:'probability'})
+    df_x_nmf_tp['topic'] = list(range(0,len(df_x_nmf_tp['topic'].values)))
+    
+    # df_x_nmf_tp
+    # probability cutoff for topic model
+    cutoff_prob = 0.1
+    topics_list = df_x_nmf_tp[df_x_nmf_tp['probability'] > cutoff_prob]['topic'].values
+    #words of topics that have probability > cutoff_prob
+    df_topics_high_prob = df_coeff_topics[df_coeff_topics['topic'].isin(topics_list)]
+    # output top words
+    # df_topics_high_prob
+    
+    conf_level = 0.05
+    conf_low = df_topics_high_prob[df_topics_high_prob['p-val']<conf_level]['conf_int_low'].values
+    conf_high = df_topics_high_prob[df_topics_high_prob['p-val']<conf_level]['conf_int_high'].values
+    words_top = df_topics_high_prob[df_topics_high_prob['p-val']<conf_level]['top_words'].values
+    # " ".join(words_top.split())
+    
+    set_out = set(preprocess(" ".join(words_top)).split())
+    set_in  = set(processed_input_text.split())
+    words_top_missing = set_out.difference(set_in)
+    words_top_present = set_out.intersection(set_in)
+    
+    # for i in range(0,len(words_top)):
+    #     'Including the words ('+', '.join(words_top[i].split())+ ') is associated with having between '+str(int(round(conf_low[i],0)))+' and '+str(int(round(conf_high[i],0)))+' more reviews per month.'
+    
+    
+    
+    if words_top_missing:
+        ### map stems back
+        map_stems = {'studi': 'study', 'stori':'story','inspir':'inspire','happi':'happy','posit':'positive','creat':'create','busi':'business','emot':'emotion','advic':'advice','medit':'meditate','famili':'family'}
+        keywords_mapped_missing = []
+        for stri in words_top_missing:
+            keywords_mapped_missing.append(map_stems.get(stri,stri))
+        keywords_mapped_present = []
+        for stri in words_top_present:
+            keywords_mapped_present.append(map_stems.get(stri,stri))
+        keywords_mapped_missing[-1] = 'and '+keywords_mapped_missing[-1]
+        keywords_mapped_present[-1] = 'and '+keywords_mapped_present[-1]
+        keywords_missing = ", ".join(keywords_mapped_missing)
+        keywords_present = ", ".join(keywords_mapped_present)
+        'Good news! You already have ' +str(len(set_out)-len(words_top_missing))+' important keywords in your book title and description: '+ keywords_present+'. You have '+str(len(keywords_mapped_missing))+' to go! Add: '+ keywords_missing
+        for i in range(0,len(words_top)):
+            words_list_i = words_top[i].split()
+            words_list_i[-1] = 'and '+ words_list_i[-1]
+            'Including the words '+', '.join(words_list_i)+ ' is associated with having between '+str(int(round(math.exp(conf_low[i]),0)))+' and '+str(int(round(math.exp(conf_high[i]),0)))+' more reviews per month.'
+    
+    
+    
+#     var_1 = 'hello'
+#     '''
+#     # This is the title
+#     This is some ** ** 
+#     '''
+#     st.write('Hello, *World!* :sunglasses: **',var_1,'**')
 
 
-df_coeff_topics = pd.read_csv('../../data/books_25_pages_author_info_description_genres_topics_top_words_ols_coeff.csv')
-df_coeff_topics = df_coeff_topics.rename(columns = lambda x: x.strip())
 
-#import models
-filename_model = '../../data/topic_model_tfidf_nmf.pickle'
-nmf_model = pickle.load(open(filename_model, 'rb'))
-filename_model = '../../data/topic_model_tfidf.pickle'
-tfidf_model = pickle.load(open(filename_model, 'rb'))
-
-# transform text to features for linear regression
-num_topics = 10
-X_tfidf = tfidf_model.transform([processed_input_text])
-X_nmf = nmf_model.transform(X_tfidf)
-df_x_nmf = pd.DataFrame(X_nmf,columns = ['topic_'+str(i) for i in range(0,num_topics)]) 
-# convert into useful dataframe
-df_x_nmf_tp = df_x_nmf.transpose().reset_index()
-df_x_nmf_tp = df_x_nmf_tp.rename(columns={'index':'topic',0:'probability'})
-df_x_nmf_tp['topic'] = list(range(0,len(df_x_nmf_tp['topic'].values)))
-
-# df_x_nmf_tp
-# probability cutoff for topic model
-cutoff_prob = 0.1
-topics_list = df_x_nmf_tp[df_x_nmf_tp['probability'] > cutoff_prob]['topic'].values
-#words of topics that have probability > cutoff_prob
-df_topics_high_prob = df_coeff_topics[df_coeff_topics['topic'].isin(topics_list)]
-# output top words
-# df_topics_high_prob
-
-conf_level = 0.05
-conf_low = df_topics_high_prob[df_topics_high_prob['p-val']<conf_level]['conf_int_low'].values
-conf_high = df_topics_high_prob[df_topics_high_prob['p-val']<conf_level]['conf_int_high'].values
-words_top = df_topics_high_prob[df_topics_high_prob['p-val']<conf_level]['top_words'].values
-# " ".join(words_top.split())
-
-set_out = set(preprocess(" ".join(words_top)).split())
-set_in  = set(processed_input_text.split())
-words_top_missing = set_out.difference(set_in)
-words_top_present = set_out.intersection(set_in)
-
-# for i in range(0,len(words_top)):
-#     'Including the words ('+', '.join(words_top[i].split())+ ') is associated with having between '+str(int(round(conf_low[i],0)))+' and '+str(int(round(conf_high[i],0)))+' more reviews per month.'
-
-
-
-if words_top_missing:
-    ### map stems back
-    map_stems = {'studi': 'study', 'stori':'story','inspir':'inspire','happi':'happy','posit':'positive','creat':'create','busi':'business','emot':'emotion','advic':'advice','medit':'meditate','famili':'family'}
-    keywords_mapped_missing = []
-    for stri in words_top_missing:
-        keywords_mapped_missing.append(map_stems.get(stri,stri))
-    keywords_mapped_present = []
-    for stri in words_top_present:
-        keywords_mapped_present.append(map_stems.get(stri,stri))
-    keywords_mapped_missing[-1] = 'and '+keywords_mapped_missing[-1]
-    keywords_mapped_present[-1] = 'and '+keywords_mapped_present[-1]
-    keywords_missing = ", ".join(keywords_mapped_missing)
-    keywords_present = ", ".join(keywords_mapped_present)
-    'Good news! You already have ' +str(len(set_out)-len(words_top_missing))+' important keywords in your book title and description: '+ keywords_present+'. You have '+str(len(keywords_mapped_missing))+' to go! Add: '+ keywords_missing
-    for i in range(0,len(words_top)):
-        words_list_i = words_top[i].split()
-        words_list_i[-1] = 'and '+ words_list_i[-1]
-        'Including the words '+', '.join(words_list_i)+ ' is associated with having between '+str(int(round(math.exp(conf_low[i]),0)))+' and '+str(int(round(math.exp(conf_high[i]),0)))+' more reviews per month.'
 
 # df1 = pd.read_csv('../../data/books_25_pages_clean0.csv',skipinitialspace=True)
 # num_half = int(len(df1.index)/2)
