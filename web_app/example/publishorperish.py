@@ -106,7 +106,7 @@ if main_category == 'self-help':
     tfidf_model = pickle.load(open(filename_model, 'rb'))
     
     # transform text to features for linear regression
-    num_topics = 10
+    num_topics = len(df_coeff_topics)
     X_tfidf = tfidf_model.transform([processed_input_text])
     X_nmf = nmf_model.transform(X_tfidf)
     df_x_nmf = pd.DataFrame(X_nmf,columns = ['topic_'+str(i) for i in range(0,num_topics)]) 
@@ -124,7 +124,8 @@ if main_category == 'self-help':
     # output top words
     # df_topics_high_prob
     
-    conf_level = 0.05
+    # Bonferroni correction
+    conf_level = 0.05/num_topics
     conf_low = df_topics_high_prob[df_topics_high_prob['p-val']<conf_level]['conf_int_low'].values
     conf_high = df_topics_high_prob[df_topics_high_prob['p-val']<conf_level]['conf_int_high'].values
     words_top = df_topics_high_prob[df_topics_high_prob['p-val']<conf_level]['top_words'].values
