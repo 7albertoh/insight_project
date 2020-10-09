@@ -7,6 +7,8 @@ import pandas as pd
 import numpy as np
 import re
 import random
+from os import listdir
+from os.path import isfile, join
 
 random.seed(123)
 np.random.seed(123)
@@ -314,13 +316,31 @@ def write_html_authors():
         print(i,refi)
 
         i += 1
-        
+
+def extract_barnes_noble_title_description():
+    # read the html files
+    path_files = str(Path(os.getcwd()).parents[0])+'/data/html_files/barnes_and_noble/'
+    files_html = [join(path_files, f) for f in listdir(path_files) if isfile(join(path_files, f))]
+    book_data = []
+    for filei in files_html:
+        soup = bs(open(filei,encoding="utf-8"),'html.parser')
+        soup_find_out = soup.find_all(class_="pdp-header-title")[0].text
+        # remove unwanted characters
+        title_i = " ".join(soup_find_out.split()).replace(","," ").replace(':',' ').replace('"',' ').replace("'",' ')
+        title_i  = cleanhtml(title_i)
+        soup_find_out = soup.find_all(class_="overview-cntnt")[0].text
+        # remove unwanted characters
+        description_i = " ".join(soup_find_out.split()).replace(","," ").replace(':',' ').replace('"',' ').replace("'",' ')
+        description_i  = cleanhtml(description_i)
+        book_data.append([title_i,description_i])
+    df1 = pd.DataFrame(book_data,columns = ['book_title','book_description'])
+    
+    df1.to_csv(str(Path(os.getcwd()).parents[0])+'/data/barnes_and_noble.csv',index= False)
+    # pdp-header-title
+
+    return
 def main():
-    # TODO: 
-        # use data from various sources
-        # add more features like distribution of book ratings, number of books published by author, publisher, date of first review
-        # create new features with PCA, t-SNE, k-means...
-    extract_from_html_book_page()
+    extract_barnes_noble_title_description()
     
 if __name__ == "__main__":
     main()
