@@ -129,6 +129,10 @@ if main_category == 'self-help':
     conf_low = df_topics_high_prob[df_topics_high_prob['p-val']<conf_level]['conf_int_low'].values
     conf_high = df_topics_high_prob[df_topics_high_prob['p-val']<conf_level]['conf_int_high'].values
     words_top = df_topics_high_prob[df_topics_high_prob['p-val']<conf_level]['top_words'].values
+    # clean noisy words
+    for i in range(0,len(words_top)):
+        words_top[i] = words_top[i].replace('listen','')
+        words_top[i] = words_top[i].replace('family','')
     # " ".join(words_top.split())
     
     set_out = set(preprocess(" ".join(words_top)).split())
