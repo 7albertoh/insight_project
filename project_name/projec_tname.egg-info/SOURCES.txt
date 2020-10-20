@@ -1,5 +1,0 @@
-setup.py
-projec_tname.egg-info/PKG-INFO
-projec_tname.egg-info/SOURCES.txt
-projec_tname.egg-info/dependency_links.txt
-projec_tname.egg-info/top_level.txt
